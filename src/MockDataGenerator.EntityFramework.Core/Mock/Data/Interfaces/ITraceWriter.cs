@@ -2,7 +2,7 @@ namespace Mock.Data.Interfaces
 {
     public interface ITraceWriter
     {
-        void Info(string message);
+        void Log(string message);
 
         void Verbose(string message);
     }

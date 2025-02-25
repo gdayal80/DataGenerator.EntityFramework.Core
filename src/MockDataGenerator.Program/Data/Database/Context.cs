@@ -1,4 +1,4 @@
-namespace Data.Database
+namespace MockDataGenerator.Program.Data.Database
 {
     using Microsoft.EntityFrameworkCore;
     using MockDataGenerator.Program.Data.Entities;
