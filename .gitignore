@@ -1,0 +1,7 @@
+src/.vs
+src/MockDataGenerator.EntityFramework.Core/obj
+src/MockDataGenerator.EntityFramework.Core/bin
+src/MockDataGenerator.Program/obj
+src/MockDataGenerator.Program/bin
+src/MockDataGenerator.Test/obj
+src/MockDataGenerator.Test/bin
