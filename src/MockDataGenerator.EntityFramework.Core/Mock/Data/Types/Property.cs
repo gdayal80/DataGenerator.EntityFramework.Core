@@ -8,6 +8,7 @@ namespace MockDataGenerator.EntityFramework.Core.Mock.Data.Types
         public string? ClrTypeName { get; set; }
         public bool IsPrimaryKey { get; set; }
         public AfterSaveBehavior AfterSaveBehavior { get; set; }
+        public bool IsVirtual { get; set; }
         public bool IsRequired { get; set; }
         public bool IsForeignKey { get; set; }
         public bool IsNullable { get; set; }
