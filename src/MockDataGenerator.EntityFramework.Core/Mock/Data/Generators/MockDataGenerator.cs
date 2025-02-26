@@ -7,6 +7,8 @@ namespace Mock.Data.Generators
     using OpenAI.Chat;
     using System.Text;
     using Repositories.Generic;
+    using Microsoft.EntityFrameworkCore.Metadata;
+    using System.Reflection;
 
     public class MockDataGenerator<T> where T : DbContext
     {
@@ -23,7 +25,7 @@ namespace Mock.Data.Generators
             _trace = trace;
             _generatedEntities = new List<dynamic>();
             _openAiChatClient = new ChatClient(openApiModelName ?? _openApiDefaultModelName, openAiApiKey);
-            _openAiBatchCount = 25;
+            _openAiBatchCount = 5;
         }
 
         public Entity AnalyseEntity<K>() where K : class
@@ -31,25 +33,12 @@ namespace Mock.Data.Generators
             var entityTypeName = typeof(K).Name;
             var entityTypes = _context.Model.GetEntityTypes();
             var entityType = entityTypes.Where(et => et?.DisplayName() == entityTypeName).FirstOrDefault();
-            //var startDateTime = DateTime.Now;
-            //var startDateTimeString = startDateTime.ToString("dd/MM/yyyy HH:mm:ss");
             var displayName = entityType?.DisplayName();
-
-            //_trace.Log($"Started analysing Model: {displayName}");
-
             var entity = new Entity();
             var properties = entityType?.GetProperties()?.ToList()!;
 
             entity.DisplayName = displayName;
             entity.Properties = properties;
-
-            //var endDateTime = DateTime.Now;
-            //var endDateTimeString = endDateTime.ToString("dd/MM/yyyy HH:mm:ss");
-            //var timeElapsedString = (endDateTime - startDateTime).TotalMilliseconds;
-
-            //_trace.Log($"{JsonSerializer.Serialize(_entities)}");
-            //_trace.Log($"Finished analysing Model: {displayName}");
-            //_trace.Log($"Operation took {timeElapsedString} milli seconds");
 
             return entity;
         }
@@ -59,6 +48,7 @@ namespace Mock.Data.Generators
             int batchArrSize = noOfRows / _openAiBatchCount;
             int remainder = noOfRows % _openAiBatchCount;
             List<int> batchArr = new List<int>(remainder > 0 ? batchArrSize + 1 : batchArrSize);
+            Random random = new Random();
 
             for (int i = 0; i < batchArrSize; i++)
             {
@@ -72,7 +62,6 @@ namespace Mock.Data.Generators
 
             Entity entity = AnalyseEntity<K>();
             var properties = entity.Properties!;
-            //bool mockDataHasValue = false;
 
             foreach (var batchArrItem in batchArr)
             {
@@ -84,8 +73,9 @@ namespace Mock.Data.Generators
                     Type entityType = typeof(K);
                     string? displayName = entity?.DisplayName;
                     var entityProperties = new List<Property>();
+                    var rowStr = remainingCount == 1 ? "row" : "rows";
 
-                    StringBuilder sbMessage = new StringBuilder($"create dummy data in JSON format for {displayName} table with {remainingCount} rows where each {displayName} has a ");
+                    StringBuilder sbMessage = new StringBuilder($"create dummy data in JSON format for {displayName} table with {remainingCount} {rowStr} where each {displayName} has a ");
 
                     foreach (var property in properties)
                     {
@@ -113,17 +103,9 @@ namespace Mock.Data.Generators
                             messageAppended = true;
                         }
 
-                        // if (mockDataHasValue && property.IsPrimaryKey())
-                        // {
-                        //     var notInList = string.Join(", ", entity?.MockData?.Select(md => ((PropertyInfo[])md.GetType().GetProperties()).Where(p => p.Name == property.Name).FirstOrDefault()?.GetValue(md)?.ToString()).ToList()!);
-
-                        //     sbMessage.Append($" not in list [{notInList}]");
-                        // }
-
                         if (!(index == propertiesCount - 1) && messageAppended)
                         {
                             sbMessage.Append(", ");
-                            messageAppended = false;
                         }
                     }
 
@@ -135,12 +117,69 @@ namespace Mock.Data.Generators
                     string completionContentText = completion.Content[0].Text;
                     int startIndex = completionContentText.IndexOf("```json") + 7;
                     int length = completionContentText.LastIndexOf("```") - startIndex;
-                    StringBuilder sbCompletionContent = new StringBuilder(completionContentText.Substring(startIndex, length));
+                    // var startStr = "//";
+                    // var endStr = "entries";
+
+                    completionContentText = completionContentText.Substring(startIndex, length);
+
+                    // while (completionContentText.Contains(startStr))
+                    // {
+                    //     length = completionContentText.IndexOf(startStr);
+                    //     completionContentText = completionContentText.Substring(0, length);
+                    //     startIndex = completionContentText.IndexOf(endStr) + endStr.Length + 1;
+                    //     completionContentText = completionContentText.Substring(startIndex);
+                    // }
+
+                    StringBuilder sbCompletionContent = new StringBuilder(completionContentText);
                     string completionContentString = sbCompletionContent.ToString();
 
                     _trace.Log($"[ASSISTANT]: {completionContentString}");
 
                     var deserializedMockData = JsonSerializer.Deserialize<List<K>>(completionContentString);
+                    var foreignKeysProperties = entity?.Properties?.Where(p => p.IsForeignKey()).ToList();
+
+                    deserializedMockData?.ForEach((K data) =>
+                    {
+                        Type dataType = data.GetType();
+
+                        foreignKeysProperties?.ForEach((property) =>
+                        {
+                            var principals = property.GetPrincipals().Select(p => p.DeclaringType.Name.Split('.').LastOrDefault()).ToList();
+
+                            if (principals.LastOrDefault() != principals.FirstOrDefault())
+                            {
+                                var principalEntity = _generatedEntities.Where(ge => ge?.DisplayName == principals.LastOrDefault()).FirstOrDefault();
+                                var mockData = (List<dynamic>?)principalEntity?.MockData;
+                                var primaryPropertyName = ((List<IProperty>?)principalEntity?.Properties)?.Where(p => p.IsPrimaryKey()).Select(p => p.Name).FirstOrDefault();
+                                var foreignProperty = dataType.GetProperty(property.Name);
+                                var count = mockData?.Count ?? 0;
+
+                                if (count > 0)
+                                {
+                                    int index = random.Next(0, count - 1);
+                                    var principalData = mockData?[index];
+                                    var principalKeyProperty = (PropertyInfo?)principalData?.GetType().GetProperty(primaryPropertyName);
+                                    var value = principalKeyProperty?.GetValue(principalData, null);
+
+                                    foreignProperty?.SetValue(data, value);
+                                }
+                            }
+                        });
+
+                        try
+                        {
+                            genericRepository.Insert(data);
+                            _context.SaveChanges();
+                            remainingCount--;
+
+                            //_trace.Log($"[data]: {JsonSerializer.Serialize(data)}");
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new Exception(ex.Message);
+                        }
+                    });
+
                     var typeCastedMockData = deserializedMockData?.Select((md) => (dynamic)md).ToList();
 
                     if (entity?.MockData?.Count() > 0)
@@ -150,93 +189,11 @@ namespace Mock.Data.Generators
                     else
                     {
                         entity!.MockData = typeCastedMockData;
-                        //mockDataHasValue = true;
                     }
 
                     _generatedEntities.Add(entity!);
-
-                    var foreignKeyProperties = entity?.Properties?.Where(p => p.IsForeignKey()).ToList();
-
-                    deserializedMockData?.ForEach((K data) =>
-                    {
-                        Type dataType = data.GetType();
-                        var dataTypeVirtualProperties = dataType.GetProperties().Where((p) => p.GetMethod?.IsVirtual ?? false).ToList();
-
-                        dataTypeVirtualProperties.ForEach((vp) =>
-                        {
-                            var principalEntityName = vp.DeclaringType?.Name;
-
-                            if (principalEntityName != dataType.Name)
-                            {
-                                var principalEntity = _generatedEntities.Where(ge => ge?.DisplayName == principalEntityName).FirstOrDefault();
-                                var mockData = (List<dynamic>?)principalEntity?.MockData;
-
-                                var count = mockData?.Count ?? 0;
-
-                                if (count > 0)
-                                {
-                                    Random random = new Random();
-                                    int index = random.Next(0, count - 1);
-
-                                    vp?.SetValue(data, mockData?[index]);
-                                }
-                            }
-                        });
-
-                        // foreignKeyProperties?.ForEach((property) =>
-                        // {
-                        //     if (property.IsForeignKey())
-                        //     {
-                        //         var principals = property.GetPrincipals().LastOrDefault()?.DeclaringType.Name.Split('.').ToList();
-
-                        //         if (principals?.FirstOrDefault() != principals?.LastOrDefault())
-                        //         {
-                        //             var principalEntity = _generatedEntities.Where(ge => ge?.DisplayName == principals?.LastOrDefault()).FirstOrDefault();
-                        //             var primaryKeyProperty = ((List<IProperty>?)principalEntity?.Properties)?.Where(p => p.IsPrimaryKey()).FirstOrDefault();
-                        //             var mockData = (List<dynamic>?)principalEntity?.MockData;
-                        //             var count = mockData?.Count ?? 0;
-
-                        //             if (count > 0)
-                        //             {
-                        //                 Random random = new Random();
-                        //                 int index = random.Next(0, count - 1);
-
-                        //                 if ((AfterSaveBehavior?)primaryKeyProperty?.GetAfterSaveBehavior() == AfterSaveBehavior.Throw)
-                        //                 {
-                        //                     var dataTypeProperty = dataType.GetProperties().Where(p => p.Name == property.Name).FirstOrDefault();
-
-                        //                     dataTypeProperty?.SetValue(data, index);
-                        //                 }
-                        //                 else
-                        //                 {
-                        //                     var principalPrimaryKeyList = mockData?.Select(md => ((PropertyInfo[])md.GetType().GetProperties()).Where(p => p.Name == primaryKeyProperty?.Name).FirstOrDefault()?.GetValue(md)).ToList()!;
-                        //                     var dataTypeProperty = dataType.GetProperties().Where(p => p.Name == property.Name).FirstOrDefault();
-
-                        //                     dataTypeProperty?.SetValue(data, principalPrimaryKeyList[index]);
-                        //                 }
-                        //             }
-                        //         }
-                        //         else
-                        //         {
-
-                        //         }
-                        //     }
-                        // });
-
-                        try
-                        {
-                            genericRepository.Insert(data);
-                            remainingCount--;
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new Exception(ex.Message);
-                        }
-                    });
                 }
             }
-
-            //_trace.Log($"[ASSISTANT]: {JsonSerializer.Serialize(entity?.MockData)}");
         }
     }
 }
