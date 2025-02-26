@@ -72,7 +72,6 @@ namespace Mock.Data.Generators
                     GenericRepository<T, K> genericRepository = new GenericRepository<T, K>(_context);
                     Type entityType = typeof(K);
                     string? displayName = entity?.DisplayName;
-                    var entityProperties = new List<Property>();
                     var rowStr = remainingCount == 1 ? "row" : "rows";
 
                     StringBuilder sbMessage = new StringBuilder($"create dummy data in JSON format for {displayName} table with {remainingCount} {rowStr} where each {displayName} has a ");
