@@ -1,7 +1,7 @@
 src/.vs
-src/MockDataGenerator.EntityFramework.Core/obj
-src/MockDataGenerator.EntityFramework.Core/bin
-src/MockDataGenerator.Program/obj
-src/MockDataGenerator.Program/bin
-src/MockDataGenerator.Test/obj
-src/MockDataGenerator.Test/bin
+src/DataGenerator.EntityFramework.Core/obj
+src/DataGenerator.EntityFramework.Core/bin
+src/DataGenerator.Program/obj
+src/DataGenerator.Program/bin
+src/DataGenerator.Test/obj
+src/DataGenerator.Test/bin
