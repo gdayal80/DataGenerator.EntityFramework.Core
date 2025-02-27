@@ -16,12 +16,12 @@ namespace DataGenerator.EntityFrameworkCore.Mock.Data.Generators
             _openAiChatClient = new ChatClient(openAiModelName, openAiApiKey);
         }
 
-        public virtual string GenerateMessage(Entity entity, string locale, string nullableForeignKeyDefaultClrTypeName = "Int64", int noOfRows = 2, int primaryKeyStartIndexAt = 1)
+        public virtual string GenerateMessage(Entity entity, int queryId, string locale, string nullableForeignKeyDefaultClrTypeName = "Int64", int noOfRows = 2, int primaryKeyStartIndexAt = 1, params string[] coomonColumnsToIgnore)
         {
             var properties = entity?.Properties!;
             string? displayName = entity?.DisplayName;
 
-            StringBuilder sbMessage = new StringBuilder($"for locale {locale} create dummy data in JSON format for {displayName} table with {noOfRows} rows where each {displayName} has a ");
+            StringBuilder sbMessage = new StringBuilder($"query {queryId}: for locale {locale} create dummy data in JSON format for {displayName} table with {noOfRows} rows where each {displayName} has a ");
 
             foreach (var property in properties)
             {
@@ -31,7 +31,7 @@ namespace DataGenerator.EntityFrameworkCore.Mock.Data.Generators
                 string typeName = (clrTypeName?.Equals("Nullable`1") ?? false) ? nullableForeignKeyDefaultClrTypeName : clrTypeName!;
                 bool messageAppended = false;
 
-                if (!property!.IsForeignKey)
+                if (!property!.IsForeignKey && !coomonColumnsToIgnore.Contains(property.Name))
                 {
                     sbMessage.Append($"{property.Name} of type {typeName}");
                     messageAppended = true;

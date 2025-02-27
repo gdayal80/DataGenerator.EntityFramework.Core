@@ -19,7 +19,7 @@ namespace DataGenerator.Test.Tests
             var openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
             CustomDataGenerator mockDataGenerator = new CustomDataGenerator(trace, openAiApiKey);
             string locale = "en-US";
-            
+
             GenerateAndCheckMessage<User>(mockDataGenerator, locale, 5, 5, typeof(long).Name, trace);
             GenerateAndCheckMessage<School>(mockDataGenerator, locale, 2, 5, typeof(long).Name, trace);
             GenerateAndCheckMessage<SchoolBranch>(mockDataGenerator, locale, 5, 5, typeof(long).Name, trace);
@@ -43,11 +43,11 @@ namespace DataGenerator.Test.Tests
                                     sqlOptions.CommandTimeout(240);
                                 }).ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning)).Options;
             var context = new Context(dbOptions);
-            
+
             EntityFrameworkAnalyser<Context> entityFrameworkAnalyser = new EntityFrameworkAnalyser<Context>(trace);
             var entityTypes = entityFrameworkAnalyser.GetEntityTypesFromModel(context);
             var entity = entityFrameworkAnalyser.AnalyseEntity<User>(entityTypes);
-            
+
             int batchArrSize = noOfRows / openAiBatchSize;
             int remainder = noOfRows % openAiBatchSize;
             List<int> batchArr = new List<int>(remainder > 0 ? batchArrSize + 1 : batchArrSize);
@@ -62,19 +62,19 @@ namespace DataGenerator.Test.Tests
                 batchArr.Add(remainder);
             }
 
-            foreach (var batchArrItem in batchArr)
+            for (int i = 0; i < batchArr.Count(); i++)
             {
-                var message = mockDataGenerator.GenerateMessage(entity!, locale, nullableForeignKeyDefaultClrTypeName, batchArrItem);
+                var message = mockDataGenerator.GenerateMessage(entity!, i, locale, nullableForeignKeyDefaultClrTypeName, batchArr[i]);
                 var valueGeneratedOnAddProperties = entity.PrimaryKeys?.ToList();
                 bool flag = message.Contains(entity.DisplayName!);
                 int? count = valueGeneratedOnAddProperties?.Count();
-                
+
                 Assert.True(flag);
                 Assert.True(count >= 1);
-                
+
                 valueGeneratedOnAddProperties?.ForEach((vgp) =>
                 {
-                    Assert.True(!message.Contains(vgp));
+                    Assert.True(!message.Contains(vgp.Name!));
                 });
             }
         }

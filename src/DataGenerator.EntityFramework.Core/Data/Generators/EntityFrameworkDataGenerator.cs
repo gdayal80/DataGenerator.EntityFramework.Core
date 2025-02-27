@@ -29,7 +29,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
             _generatedEntities = generatedEntities;
         }
 
-        public async Task GenerateAndInsertData<K>(string nullableForeignKeyDefaultClrTypeName, string locale, int noOfRows = 2, int openAiBatchSize = 5) where K : class
+        public async Task GenerateAndInsertData<K>(string nullableForeignKeyDefaultClrTypeName, string locale, int noOfRows = 2, int openAiBatchSize = 5, int retryCount = 3, params string[] coomonColumnsToIgnore) where K : class
         {
             int batchArrSize = noOfRows / openAiBatchSize;
             int remainder = noOfRows % openAiBatchSize;
@@ -46,44 +46,41 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
                 batchArr.Add(remainder);
             }
 
-            foreach (var batchArrItem in batchArr)
+            for (int i = 0; i < batchArr.Count(); i++)
             {
-                var message = _generator.GenerateMessage(entity!, locale, nullableForeignKeyDefaultClrTypeName, batchArrItem);
-                var data = _generator.GenerateMockData(message);
-
-                if (!string.IsNullOrEmpty(data))
+                var message = _generator.GenerateMessage(entity!, i, locale, nullableForeignKeyDefaultClrTypeName, batchArr[i], 1, coomonColumnsToIgnore);
+                int count = 1;
+                
+                while (retryCount > 0)
                 {
-                    string startStr = "```json";
-                    string endStr = "```";
-                    int startIndex = data.IndexOf(startStr) + startStr.Length + 1;
-                    int length = data.LastIndexOf(endStr) - startIndex;
+                    var data = _generator.GenerateMockData(message);
 
-                    try
+                    if (!string.IsNullOrEmpty(data))
                     {
-                        var deserializedMockData = JsonSerializer.Deserialize<List<K>>(data.Substring(startIndex, length))!;
-
-                        await InsertMockDataAsync(entity, deserializedMockData);
-                    }
-                    catch (JsonException ex)
-                    {
-                        _trace.Log($"last operation failed with error {ex.Message}. retrying last operation again.");
-
-                        data = _generator.GenerateMockData(message);
+                        string startStr = "```json";
+                        string endStr = "```";
+                        int startIndex = data.IndexOf(startStr) + startStr.Length + 1;
+                        int length = data.LastIndexOf(endStr) - startIndex;
 
                         try
                         {
                             var deserializedMockData = JsonSerializer.Deserialize<List<K>>(data.Substring(startIndex, length))!;
 
                             await InsertMockDataAsync(entity, deserializedMockData);
+                            
+                            break;
                         }
-                        catch (JsonException ex2)
+                        catch (JsonException ex)
                         {
-                            _trace.Log($"last operation failed again with error {ex2.Message}. skipping last operation.");
+                            _trace.Log($"last operation failed with error {ex.Message}. retry count {count} for last operation again.");
+
+                            count++;
+                            retryCount--;
                         }
-                    }
-                    catch (Exception ex3)
-                    {
-                        _trace.Log($"last operation failed with error {ex3.Message}. kipping last operation.");
+                        catch
+                        {
+                            throw;
+                        }
                     }
                 }
             }
@@ -98,6 +95,13 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
             {
                 Type dataType = data.GetType();
                 var foreignKeysProperties = entity?.Properties?.Where(p => p.IsForeignKey).ToList();
+                var primaryKeyColumn = entity?.PrimaryKeys?.FirstOrDefault();
+                var primaryKeyProperty = dataType.GetProperty(primaryKeyColumn!.Name!);
+
+                if (primaryKeyColumn?.ClrTypeName == typeof(long).Name || primaryKeyColumn?.ClrTypeName == typeof(int).Name)
+                {
+                    primaryKeyProperty?.SetValue(data, 0);
+                }
 
                 foreignKeysProperties?.ForEach((property) =>
                 {
@@ -107,7 +111,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
                     {
                         var principalEntity = _generatedEntities.Where(ge => ge?.DisplayName == principals.LastOrDefault()).FirstOrDefault();
                         var mockData = principalEntity?.MockData;
-                        var primaryPropertyName = principalEntity?.PrimaryKeys?.FirstOrDefault();
+                        var primaryProperty = principalEntity?.PrimaryKeys?.FirstOrDefault();
                         var foreignProperty = dataType.GetProperty(property.Name!);
                         var count = mockData?.Count ?? 0;
 
@@ -115,7 +119,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
                         {
                             int index = random.Next(0, count - 1);
                             var principalData = mockData?[index];
-                            var principalKeyProperty = (PropertyInfo?)principalData?.GetType().GetProperty(primaryPropertyName);
+                            var principalKeyProperty = (PropertyInfo?)principalData?.GetType().GetProperty(primaryProperty!.Name);
                             var value = principalKeyProperty?.GetValue(principalData, null);
 
                             foreignProperty?.SetValue(data, value);

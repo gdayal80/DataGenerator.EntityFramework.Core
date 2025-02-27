@@ -36,7 +36,14 @@ namespace DataGenerator.EntityFrameworkCore.Data.Analysers
                 IsPrimaryKey = p.IsPrimaryKey(),
                 Principals = p.GetPrincipals().Select(pr => pr.DeclaringType.Name.Split('.').LastOrDefault()!)
             }).ToList();
-            entity.PrimaryKeys = properties.Where(p => p.IsPrimaryKey()).Select(p => p.Name).ToList();
+            entity.PrimaryKeys = properties.Where(p => p.IsPrimaryKey()).Select(p => new Property
+            {
+                Name = p.Name,
+                ClrTypeName = p.ClrType.Name,
+                IsForeignKey = p.IsForeignKey(),
+                IsPrimaryKey = p.IsPrimaryKey(),
+                Principals = p.GetPrincipals().Select(pr => pr.DeclaringType.Name.Split('.').LastOrDefault()!)
+            }).ToList();
             entity.MockData = new List<dynamic>();
 
             return entity;
