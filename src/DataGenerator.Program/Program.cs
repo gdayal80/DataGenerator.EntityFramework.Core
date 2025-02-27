@@ -10,6 +10,7 @@
     using DataGenerator.EntityFrameworkCore.Mock.Data.Generators;
     using DataGenerator.EntityFrameworkCore.Types;
     using DataGenerator.EntityFrameworkCore.Data.Generators;
+    using System.Globalization;
 
     class Program
     {
@@ -28,21 +29,22 @@
             var context = new Context(dbOptions);
             var trace = new ConsoleTraceWriter();
             var openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+            string locale = CultureInfo.CurrentCulture.Name;
 
             try
             {
                 MockDataGenerator mockDataGenerator = new MockDataGenerator(trace, openAiApiKey);
                 var generatedEntities = new List<Entity>();
                 EntityFrameworkDataGenerator<Context> entityFrameworkDataGenerator = new EntityFrameworkDataGenerator<Context>(context, mockDataGenerator, generatedEntities, trace);
-                
-                await entityFrameworkDataGenerator.GenerateAndInsertData<User>(typeof(long).Name, 5);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<School>(typeof(long).Name, 2);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<SchoolBranch>(typeof(long).Name, 5);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<Country>(typeof(long).Name, 5);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<State>(typeof(long).Name, 25);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<City>(typeof(long).Name, 125);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<AddressType>(typeof(long).Name, 2);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<Address>(typeof(long).Name, 125);
+
+                await entityFrameworkDataGenerator.GenerateAndInsertData<User>(typeof(long).Name, locale, 5);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<School>(typeof(long).Name, locale, 2);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<SchoolBranch>(typeof(long).Name, locale, 5);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<Country>(typeof(long).Name, locale, 1);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<State>(typeof(long).Name, locale, 25);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<City>(typeof(long).Name, locale, 125);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<AddressType>(typeof(long).Name, locale, 2);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<Address>(typeof(long).Name, locale, 125);
             }
             catch (Exception ex)
             {

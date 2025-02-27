@@ -4,7 +4,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Analysers
     using Microsoft.EntityFrameworkCore.Metadata;
     using DataGenerator.EntityFrameworkCore.Interfaces;
     using DataGenerator.EntityFrameworkCore.Types;
-    
+
     public class EntityFrameworkAnalyser<T> where T : DbContext
     {
         private ITraceWriter _trace;
@@ -13,7 +13,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Analysers
         {
             _trace = trace;
         }
-        
+
         public IEnumerable<IEntityType> GetEntityTypesFromModel(T context)
         {
             return context.Model.GetEntityTypes();
@@ -28,15 +28,15 @@ namespace DataGenerator.EntityFrameworkCore.Data.Analysers
             var properties = entityType?.GetProperties()?.ToList()!;
 
             entity.DisplayName = displayName;
-            entity.Properties = properties.Select(p => new Property
+            entity.Properties = properties.Where(p => !(p.ValueGenerated == ValueGenerated.OnAdd)).Select(p => new Property
             {
                 Name = p.Name,
                 ClrTypeName = p.ClrType.Name,
                 IsForeignKey = p.IsForeignKey(),
                 IsPrimaryKey = p.IsPrimaryKey(),
-                ValueGeneratedOnAdd = p.ValueGenerated == ValueGenerated.OnAdd,
                 Principals = p.GetPrincipals().Select(pr => pr.DeclaringType.Name.Split('.').LastOrDefault()!)
             }).ToList();
+            entity.PrimaryKeys = properties.Where(p => p.IsPrimaryKey()).Select(p => p.Name).ToList();
             entity.MockData = new List<dynamic>();
 
             return entity;

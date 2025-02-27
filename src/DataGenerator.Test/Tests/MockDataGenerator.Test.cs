@@ -18,18 +18,19 @@ namespace DataGenerator.Test.Tests
             var trace = new ConsoleTraceWriter();
             var openAiApiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
             CustomDataGenerator mockDataGenerator = new CustomDataGenerator(trace, openAiApiKey);
+            string locale = "en-US";
             
-            GenerateAndCheckMessage<User>(mockDataGenerator, 5, 5, typeof(long).Name, trace);
-            GenerateAndCheckMessage<School>(mockDataGenerator, 2, 5, typeof(long).Name, trace);
-            GenerateAndCheckMessage<SchoolBranch>(mockDataGenerator, 5, 5, typeof(long).Name, trace);
-            GenerateAndCheckMessage<Country>(mockDataGenerator, 5, 5, typeof(long).Name, trace);
-            GenerateAndCheckMessage<State>(mockDataGenerator, 25, 5, typeof(long).Name, trace);
-            GenerateAndCheckMessage<City>(mockDataGenerator, 125, 5, typeof(long).Name, trace);
-            GenerateAndCheckMessage<AddressType>(mockDataGenerator, 2, 5, typeof(long).Name, trace);
-            GenerateAndCheckMessage<Address>(mockDataGenerator, 125, 5, typeof(long).Name, trace);
+            GenerateAndCheckMessage<User>(mockDataGenerator, locale, 5, 5, typeof(long).Name, trace);
+            GenerateAndCheckMessage<School>(mockDataGenerator, locale, 2, 5, typeof(long).Name, trace);
+            GenerateAndCheckMessage<SchoolBranch>(mockDataGenerator, locale, 5, 5, typeof(long).Name, trace);
+            GenerateAndCheckMessage<Country>(mockDataGenerator, locale, 5, 5, typeof(long).Name, trace);
+            GenerateAndCheckMessage<State>(mockDataGenerator, locale, 25, 5, typeof(long).Name, trace);
+            GenerateAndCheckMessage<City>(mockDataGenerator, locale, 125, 5, typeof(long).Name, trace);
+            GenerateAndCheckMessage<AddressType>(mockDataGenerator, locale, 2, 5, typeof(long).Name, trace);
+            GenerateAndCheckMessage<Address>(mockDataGenerator, locale, 125, 5, typeof(long).Name, trace);
         }
 
-        private void GenerateAndCheckMessage<T>(CustomDataGenerator mockDataGenerator, int noOfRows, int openAiBatchSize, string nullableForeignKeyDefaultClrTypeName, ITraceWriter trace) where T : class
+        private void GenerateAndCheckMessage<T>(CustomDataGenerator mockDataGenerator, string locale, int noOfRows, int openAiBatchSize, string nullableForeignKeyDefaultClrTypeName, ITraceWriter trace) where T : class
         {
             var connStr = Environment.GetEnvironmentVariable("LOCALHOST_MYSQL")!;
             var dbOptions = new DbContextOptionsBuilder<Context>().UseMySql(connStr, ServerVersion.AutoDetect(connStr),
@@ -63,15 +64,17 @@ namespace DataGenerator.Test.Tests
 
             foreach (var batchArrItem in batchArr)
             {
-                var message = mockDataGenerator.GenerateMessage(entity!, nullableForeignKeyDefaultClrTypeName, batchArrItem);
-                var valueGeneratedOnAddProperties = entity.Properties?.Where(p => p.ValueGeneratedOnAdd).ToList();
+                var message = mockDataGenerator.GenerateMessage(entity!, locale, nullableForeignKeyDefaultClrTypeName, batchArrItem);
+                var valueGeneratedOnAddProperties = entity.PrimaryKeys?.ToList();
                 bool flag = message.Contains(entity.DisplayName!);
+                int? count = valueGeneratedOnAddProperties?.Count();
                 
                 Assert.True(flag);
-
+                Assert.True(count >= 1);
+                
                 valueGeneratedOnAddProperties?.ForEach((vgp) =>
                 {
-                    Assert.True(!message.Contains(vgp.Name!));
+                    Assert.True(!message.Contains(vgp));
                 });
             }
         }

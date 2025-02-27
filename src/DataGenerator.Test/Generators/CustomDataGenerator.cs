@@ -11,9 +11,9 @@ namespace DataGenerator.Test.Generators
 
         }
 
-        public override string GenerateMessage(Entity entity, string nullableForeignKeyDefaultClrTypeName = "Int64", int noOfRows = 2, int primaryKeyStartIndexAt = 1)
+        public override string GenerateMessage(Entity entity, string locale, string nullableForeignKeyDefaultClrTypeName = "Int64", int noOfRows = 2, int primaryKeyStartIndexAt = 1)
         {
-            return base.GenerateMessage(entity, nullableForeignKeyDefaultClrTypeName, noOfRows, primaryKeyStartIndexAt);
+            return base.GenerateMessage(entity, locale, nullableForeignKeyDefaultClrTypeName, noOfRows, primaryKeyStartIndexAt);
         }
 
         public override string GenerateMockData(string message)

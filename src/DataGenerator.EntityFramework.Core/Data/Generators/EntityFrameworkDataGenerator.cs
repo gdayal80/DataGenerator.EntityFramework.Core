@@ -29,12 +29,12 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
             _generatedEntities = generatedEntities;
         }
 
-        public async Task GenerateAndInsertData<K>(string nullableForeignKeyDefaultClrTypeName, int noOfRows, int openAiBatchSize = 5) where K : class
+        public async Task GenerateAndInsertData<K>(string nullableForeignKeyDefaultClrTypeName, string locale, int noOfRows = 2, int openAiBatchSize = 5) where K : class
         {
             int batchArrSize = noOfRows / openAiBatchSize;
             int remainder = noOfRows % openAiBatchSize;
             List<int> batchArr = new List<int>(remainder > 0 ? batchArrSize + 1 : batchArrSize);
-            var entity = _analyser.AnalyseEntity<T>(_entityTypes);
+            var entity = _analyser.AnalyseEntity<K>(_entityTypes);
 
             for (int i = 0; i < batchArrSize; i++)
             {
@@ -48,7 +48,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
 
             foreach (var batchArrItem in batchArr)
             {
-                var message = _generator.GenerateMessage(entity!, nullableForeignKeyDefaultClrTypeName, batchArrItem);
+                var message = _generator.GenerateMessage(entity!, locale, nullableForeignKeyDefaultClrTypeName, batchArrItem);
                 var data = _generator.GenerateMockData(message);
 
                 if (!string.IsNullOrEmpty(data))
@@ -57,9 +57,34 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
                     string endStr = "```";
                     int startIndex = data.IndexOf(startStr) + startStr.Length + 1;
                     int length = data.LastIndexOf(endStr) - startIndex;
-                    var deserializedMockData = JsonSerializer.Deserialize<List<T>>(data.Substring(startIndex, length))!;
 
-                    await InsertMockDataAsync(entity, deserializedMockData);
+                    try
+                    {
+                        var deserializedMockData = JsonSerializer.Deserialize<List<K>>(data.Substring(startIndex, length))!;
+
+                        await InsertMockDataAsync(entity, deserializedMockData);
+                    }
+                    catch (JsonException ex)
+                    {
+                        _trace.Log($"last operation failed with error {ex.Message}. retrying last operation again.");
+
+                        data = _generator.GenerateMockData(message);
+
+                        try
+                        {
+                            var deserializedMockData = JsonSerializer.Deserialize<List<K>>(data.Substring(startIndex, length))!;
+
+                            await InsertMockDataAsync(entity, deserializedMockData);
+                        }
+                        catch (JsonException ex2)
+                        {
+                            _trace.Log($"last operation failed again with error {ex2.Message}. skipping last operation.");
+                        }
+                    }
+                    catch (Exception ex3)
+                    {
+                        _trace.Log($"last operation failed with error {ex3.Message}. kipping last operation.");
+                    }
                 }
             }
         }
@@ -82,7 +107,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
                     {
                         var principalEntity = _generatedEntities.Where(ge => ge?.DisplayName == principals.LastOrDefault()).FirstOrDefault();
                         var mockData = principalEntity?.MockData;
-                        var primaryPropertyName = principalEntity?.Properties?.Where(p => p.IsPrimaryKey).Select(p => p.Name).FirstOrDefault();
+                        var primaryPropertyName = principalEntity?.PrimaryKeys?.FirstOrDefault();
                         var foreignProperty = dataType.GetProperty(property.Name!);
                         var count = mockData?.Count ?? 0;
 
