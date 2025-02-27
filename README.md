@@ -2,7 +2,7 @@
 ![Nuget](https://img.shields.io/nuget/v/MockDataGenerator.EntityFramework.Core)
 
 # Introduction
-MockDataGenerator.EntityFramework.Core is a package to generate Mock Data using EntityFramework Core on Windows / Linux / MacOS (Though not tested on MacOS (due to unavailability of Mac Machine), but it might work).
+MockDataGenerator.EntityFramework.Core is a package to generate Mock Data using OpenAI & EntityFramework Core on Windows / Linux / MacOS (Though not tested on MacOS (due to unavailability of Mac Machine), but it might work).
 
 # Getting started
 
