@@ -91,7 +91,7 @@
 
                     citiesInState?.ForEach((city) =>
                     {
-                        city.StateId = state.StateId;
+                        city.State = state;
                         city.CreatedBy = users?[random.Next(0, users.Count())];
                         city.UpdatedBy = users?[random.Next(0, users.Count())];
                     });
