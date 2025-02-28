@@ -9,6 +9,7 @@ namespace DataGenerator.Test.Tests
     using Microsoft.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore.Diagnostics;
     using Microsoft.EntityFrameworkCore.Infrastructure;
+    using OpenAI.Chat;
 
     public class MockDataGeneratorTest
     {
@@ -51,6 +52,7 @@ namespace DataGenerator.Test.Tests
             int batchArrSize = noOfRows / openAiBatchSize;
             int remainder = noOfRows % openAiBatchSize;
             List<int> batchArr = new List<int>(remainder > 0 ? batchArrSize + 1 : batchArrSize);
+            ChatCompletionOptions completionOptions;
 
             for (int i = 0; i < batchArrSize; i++)
             {
@@ -64,7 +66,7 @@ namespace DataGenerator.Test.Tests
 
             for (int i = 0; i < batchArr.Count(); i++)
             {
-                var message = mockDataGenerator.GenerateMessage(entity!, i, locale, nullableForeignKeyDefaultClrTypeName, batchArr[i]);
+                var message = mockDataGenerator.GenerateMessage(entity!, locale, out completionOptions, batchArr[i]);
                 var valueGeneratedOnAddProperties = entity.PrimaryKeys?.ToList();
                 bool flag = message.Contains(entity.DisplayName!);
                 int? count = valueGeneratedOnAddProperties?.Count();

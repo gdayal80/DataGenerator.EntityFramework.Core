@@ -28,15 +28,21 @@ namespace DataGenerator.EntityFrameworkCore.Data.Analysers
             var properties = entityType?.GetProperties()?.ToList()!;
 
             entity.DisplayName = displayName;
-            entity.Properties = properties.Where(p => !(p.ValueGenerated == ValueGenerated.OnAdd)).Select(p => new Property
+            entity.Properties = properties.Where(p => !(p.ValueGenerated == ValueGenerated.OnAdd) && !p.IsForeignKey()).Select(p => new Property
             {
                 Name = p.Name,
                 ClrTypeName = p.ClrType.Name,
                 IsForeignKey = p.IsForeignKey(),
-                IsPrimaryKey = p.IsPrimaryKey(),
-                Principals = p.GetPrincipals().Select(pr => pr.DeclaringType.Name.Split('.').LastOrDefault()!)
+                IsPrimaryKey = p.IsPrimaryKey()
             }).ToList();
             entity.PrimaryKeys = properties.Where(p => p.IsPrimaryKey()).Select(p => new Property
+            {
+                Name = p.Name,
+                ClrTypeName = p.ClrType.Name,
+                IsForeignKey = p.IsForeignKey(),
+                IsPrimaryKey = p.IsPrimaryKey()
+            }).ToList();
+            entity.ForeignKeys = properties.Where(p => p.IsForeignKey()).Select(p => new Property
             {
                 Name = p.Name,
                 ClrTypeName = p.ClrType.Name,

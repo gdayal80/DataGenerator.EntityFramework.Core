@@ -3,6 +3,7 @@ namespace DataGenerator.Test.Generators
     using DataGenerator.EntityFrameworkCore.Interfaces;
     using DataGenerator.EntityFrameworkCore.Mock.Data.Generators;
     using DataGenerator.EntityFrameworkCore.Types;
+    using OpenAI.Chat;
 
     public class CustomDataGenerator : MockDataGenerator
     {
@@ -11,12 +12,12 @@ namespace DataGenerator.Test.Generators
 
         }
 
-        public override string GenerateMessage(Entity entity, int queryId, string locale, string nullableForeignKeyDefaultClrTypeName = "Int64", int noOfRows = 2, int primaryKeyStartIndexAt = 1, params string[] coomonColumnsToIgnore)
+        public override string GenerateMessage(Entity entity, string locale, out ChatCompletionOptions completionOptions, int noOfRows = 2, params string[] coomonColumnsToIgnore)
         {
-            return base.GenerateMessage(entity, queryId, locale, nullableForeignKeyDefaultClrTypeName, noOfRows, primaryKeyStartIndexAt, coomonColumnsToIgnore);
+            return base.GenerateMessage(entity, locale, out completionOptions, noOfRows, coomonColumnsToIgnore);
         }
 
-        public override string GenerateMockData(string message)
+        public override async Task<string> GenerateMockData(string message, ChatCompletionOptions completionOptions)
         {
             return string.Empty;
         }

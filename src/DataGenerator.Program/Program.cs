@@ -37,14 +37,14 @@
                 var generatedEntities = new List<Entity>();
                 EntityFrameworkDataGenerator<Context> entityFrameworkDataGenerator = new EntityFrameworkDataGenerator<Context>(context, mockDataGenerator, generatedEntities, trace);
 
-                await entityFrameworkDataGenerator.GenerateAndInsertData<User>(typeof(long).Name, locale, 5, 5, 3);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<School>(typeof(long).Name, locale, 2, 5, 3);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<SchoolBranch>(typeof(long).Name, locale, 5, 5, 3);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<Country>(typeof(long).Name, locale, 2, 5, 3);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<State>(typeof(long).Name, locale, 25, 5, 3);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<City>(typeof(long).Name, locale, 125, 5, 3);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<AddressType>(typeof(long).Name, locale, 2, 5, 3);
-                await entityFrameworkDataGenerator.GenerateAndInsertData<Address>(typeof(long).Name, locale, 125, 5, 3);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<User>(locale, 5, 5);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<School>(locale, 2, 2);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<SchoolBranch>(locale, 5, 5);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<Country>(locale, 1, 1);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<State>(locale, 25, 25);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<City>(locale, 125, 125);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<AddressType>(locale, 2, 2);
+                await entityFrameworkDataGenerator.GenerateAndInsertData<Address>(locale, 125, 125);
             }
             catch (Exception ex)
             {

@@ -4,6 +4,7 @@ namespace DataGenerator.EntityFrameworkCore.Mock.Data.Generators
     using DataGenerator.EntityFrameworkCore.Types;
     using OpenAI.Chat;
     using System.Text;
+    using System.Text.Json;
 
     public class MockDataGenerator
     {
@@ -16,43 +17,64 @@ namespace DataGenerator.EntityFrameworkCore.Mock.Data.Generators
             _openAiChatClient = new ChatClient(openAiModelName, openAiApiKey);
         }
 
-        public virtual string GenerateMessage(Entity entity, int queryId, string locale, string nullableForeignKeyDefaultClrTypeName = "Int64", int noOfRows = 2, int primaryKeyStartIndexAt = 1, params string[] coomonColumnsToIgnore)
+        public virtual string GenerateMessage(Entity entity, string locale, out ChatCompletionOptions completionOptions, int noOfRows = 2, params string[] coomonColumnsToIgnore)
         {
             var properties = entity?.Properties!;
             string? displayName = entity?.DisplayName;
-
-            StringBuilder sbMessage = new StringBuilder($"query {queryId}: for locale {locale} create dummy data in JSON format for {displayName} table with {noOfRows} rows where each {displayName} has a ");
+            string message = $"for locale {locale} create dummy data for table {displayName} with {noOfRows} rows";
+            JsonSchema jsonSchema = new JsonSchema { Type = "object" };
+            JsonSchema jsonSchemaData = new JsonSchema { Type = "object" };
+            JsonSchema jsonSchemaItems = new JsonSchema { Type = "array" };
+            Dictionary<string, object> jsonSchemaDataProperties = new Dictionary<string, object>();
+            Dictionary<string, object> jsonSchemaProperties = new Dictionary<string, object>();
+            List<string> required = new List<string>();
+            var options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            };
 
             foreach (var property in properties)
             {
-                int propertiesCount = properties.Count();
-                int index = properties.IndexOf(property);
                 string? clrTypeName = property.ClrTypeName;
-                string typeName = (clrTypeName?.Equals("Nullable`1") ?? false) ? nullableForeignKeyDefaultClrTypeName : clrTypeName!;
-                bool messageAppended = false;
 
-                if (!property!.IsForeignKey && !coomonColumnsToIgnore.Contains(property.Name))
+                if (clrTypeName!.Equals(typeof(int).Name) || clrTypeName!.Equals(typeof(long).Name))
                 {
-                    sbMessage.Append($"{property.Name} of type {typeName}");
-                    messageAppended = true;
+                    clrTypeName = "Number";
                 }
 
-                if (!(index == propertiesCount - 1) && messageAppended)
+                if (!coomonColumnsToIgnore.Contains(property.Name) && !clrTypeName!.Equals(typeof(DateTime).Name))
                 {
-                    sbMessage.Append(", ");
+                    jsonSchemaProperties.Add(property.Name!, new JsonSchema { Type = $"{clrTypeName.ToLower()}", AdditionalProperties = null });
+                    required.Add(property.Name!);
                 }
             }
 
-            string message = sbMessage.ToString()!;
+            jsonSchema.Properties = jsonSchemaProperties;
+            jsonSchema.Required = required;
+            jsonSchema.AdditionalProperties = false;
+            jsonSchemaItems.Items = jsonSchema;
+            jsonSchemaDataProperties.Add("Data", jsonSchemaItems);
+            jsonSchemaData.Properties = jsonSchemaDataProperties;
+            jsonSchemaData.Required = ["Data"];
+            jsonSchemaData.AdditionalProperties = false;
+
+            string jsonSchemaStr = JsonSerializer.Serialize(jsonSchemaData, options);
+            byte[] bytes = Encoding.UTF8.GetBytes(jsonSchemaStr);
+
+            completionOptions = new ChatCompletionOptions
+            {
+                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(jsonSchemaFormatName: $"create_{displayName}", jsonSchema: BinaryData.FromBytes(bytes), jsonSchemaIsStrict: true)
+            };
 
             _trace.Log($"Sending [MESSAGE]: {message}");
+            _trace.Log($"Sending [jsonSchema]: {jsonSchemaStr}");
 
             return message;
         }
 
-        public virtual string GenerateMockData(string message)
+        public virtual async Task<string> GenerateMockData(string message, ChatCompletionOptions completionOptions)
         {
-            ChatCompletion completion = _openAiChatClient.CompleteChat(message);
+            ChatCompletion completion = await _openAiChatClient.CompleteChatAsync([message], completionOptions);
             string completionText = completion.Content[0].Text;
 
             _trace.Log($"[ASSISTANT]: {completionText}");

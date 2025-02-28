@@ -9,6 +9,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
     using DataGenerator.EntityFrameworkCore.Data.Analysers;
     using System.Text.Json;
     using DataGenerator.EntityFrameworkCore.Mock.Data.Generators;
+    using OpenAI.Chat;
 
     public class EntityFrameworkDataGenerator<T> where T : DbContext
     {
@@ -29,12 +30,13 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
             _generatedEntities = generatedEntities;
         }
 
-        public async Task GenerateAndInsertData<K>(string nullableForeignKeyDefaultClrTypeName, string locale, int noOfRows = 2, int openAiBatchSize = 5, int retryCount = 3, params string[] coomonColumnsToIgnore) where K : class
+        public async Task GenerateAndInsertData<K>(string locale, int noOfRows = 2, int openAiBatchSize = 5, int retryCount = 3, params string[] coomonColumnsToIgnore) where K : class
         {
             int batchArrSize = noOfRows / openAiBatchSize;
             int remainder = noOfRows % openAiBatchSize;
             List<int> batchArr = new List<int>(remainder > 0 ? batchArrSize + 1 : batchArrSize);
             var entity = _analyser.AnalyseEntity<K>(_entityTypes);
+            ChatCompletionOptions? completionOptions;
 
             for (int i = 0; i < batchArrSize; i++)
             {
@@ -48,26 +50,21 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
 
             for (int i = 0; i < batchArr.Count(); i++)
             {
-                var message = _generator.GenerateMessage(entity!, i, locale, nullableForeignKeyDefaultClrTypeName, batchArr[i], 1, coomonColumnsToIgnore);
+                var message = _generator.GenerateMessage(entity!, locale, out completionOptions, batchArr[i], coomonColumnsToIgnore);
                 int count = 1;
-                
+
                 while (retryCount > 0)
                 {
-                    var data = _generator.GenerateMockData(message);
+                    var data = await _generator.GenerateMockData(message, completionOptions);
 
                     if (!string.IsNullOrEmpty(data))
                     {
-                        string startStr = "```json";
-                        string endStr = "```";
-                        int startIndex = data.IndexOf(startStr) + startStr.Length + 1;
-                        int length = data.LastIndexOf(endStr) - startIndex;
-
                         try
                         {
-                            var deserializedMockData = JsonSerializer.Deserialize<List<K>>(data.Substring(startIndex, length))!;
+                            var deserializedMockData = JsonSerializer.Deserialize<MockData<K>>(data)!;
 
-                            await InsertMockDataAsync(entity, deserializedMockData);
-                            
+                            await InsertMockDataAsync(entity, deserializedMockData.Data!);
+
                             break;
                         }
                         catch (JsonException ex)
@@ -94,7 +91,8 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
             foreach (K data in deserializedMockData)
             {
                 Type dataType = data.GetType();
-                var foreignKeysProperties = entity?.Properties?.Where(p => p.IsForeignKey).ToList();
+                var dateTimeProperties = entity?.Properties?.Where(p => p.ClrTypeName == typeof(DateTime).Name).ToList();
+                var foreignKeysProperties = entity?.ForeignKeys;
                 var primaryKeyColumn = entity?.PrimaryKeys?.FirstOrDefault();
                 var primaryKeyProperty = dataType.GetProperty(primaryKeyColumn!.Name!);
 
@@ -102,6 +100,13 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
                 {
                     primaryKeyProperty?.SetValue(data, 0);
                 }
+
+                dateTimeProperties?.ForEach((property) =>
+                {
+                    var dateTimeProperty = dataType.GetProperty(property.Name!);
+
+                    dateTimeProperty?.SetValue(data, DateTime.Now);
+                });
 
                 foreignKeysProperties?.ForEach((property) =>
                 {
