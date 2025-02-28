@@ -8,7 +8,6 @@
     using DataGenerator.Program.Helpers;
     using System.Collections.Generic;
     using DataGenerator.EntityFrameworkCore.Mock.Data.Generators;
-    using DataGenerator.EntityFrameworkCore.Types;
     using DataGenerator.EntityFrameworkCore.Data.Generators;
     using System.Globalization;
 
