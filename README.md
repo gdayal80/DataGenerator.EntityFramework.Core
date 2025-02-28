@@ -2,7 +2,15 @@
 ![Nuget](https://img.shields.io/nuget/v/DataGenerator.EntityFramework.Core)
 
 # Introduction
-DataGenerator.EntityFramework.Core is a package to generate Mock Data using OpenAI & EntityFramework Core on Windows / Linux / MacOS.
+DataGenerator.EntityFramework.Core is a package to generate Mock Data using OpenAI & EntityFramework Core on Windows / Linux / MacOS. The package is compatible only with primitive DataTypes, Complex DataTypes are not supported.
+
+# Parameter: `openAiBatchSize` 
+
+`openAiBatchSize` should be equal to `noOfRows` in case you want to ensure unique data values.
+
+# Parameter: `inDataValue` 
+
+`inDataValue` is the value of the data under which you want to generate data. For instance under state `Maharashtra` you want to generate data for table `City` then pass `inDataValue` as `maharashtra`.
 
 # Getting started
 
@@ -115,7 +123,7 @@ try
 
         citiesInState?.ForEach((city) =>
         {
-            city.StateId = state.StateId;
+            city.State = state;
             city.CreatedBy = users?[random.Next(0, users.Count())];
             city.UpdatedBy = users?[random.Next(0, users.Count())];
         });
