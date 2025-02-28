@@ -76,8 +76,8 @@ try
 
     foreach (var school in schools!)
     {
-        school.CreatedBy = users?[random.Next(0, users.Count())];
-        school.UpdatedBy = users?[random.Next(0, users.Count())];
+        school.CreatedBy = users?[random.Next(0, users.Count() - 1)];
+        school.UpdatedBy = users?[random.Next(0, users.Count() - 1)];
     }
 
     context.Schools.AddRange(schools!);

@@ -44,8 +44,8 @@
 
                 foreach (var school in schools!)
                 {
-                    school.CreatedBy = users?[random.Next(0, users.Count())];
-                    school.UpdatedBy = users?[random.Next(0, users.Count())];
+                    school.CreatedBy = users?[random.Next(0, users.Count() - 1)];
+                    school.UpdatedBy = users?[random.Next(0, users.Count() - 1)];
                 }
 
                 context.Schools.AddRange(schools!);
@@ -55,8 +55,8 @@
                 foreach (var schoolBranch in schoolBranches!)
                 {
                     schoolBranch.School = schools?[0];
-                    schoolBranch.CreatedBy = users?[random.Next(0, users.Count())];
-                    schoolBranch.UpdatedBy = users?[random.Next(0, users.Count())];
+                    schoolBranch.CreatedBy = users?[random.Next(0, users.Count() - 1)];
+                    schoolBranch.UpdatedBy = users?[random.Next(0, users.Count() - 1)];
                 }
 
                 context.SchoolBranches.AddRange(schoolBranches!);
@@ -65,9 +65,9 @@
 
                 foreach (var country in countries!)
                 {
-                    country.SchoolBranch = schoolBranches?[random.Next(0, schoolBranches.Count())];
-                    country.CreatedBy = users?[random.Next(0, users.Count())];
-                    country.UpdatedBy = users?[random.Next(0, users.Count())];
+                    country.SchoolBranch = schoolBranches?[random.Next(0, schoolBranches.Count() - 1)];
+                    country.CreatedBy = users?[random.Next(0, users.Count() - 1)];
+                    country.UpdatedBy = users?[random.Next(0, users.Count() - 1)];
                 }
 
                 context.Countries.AddRange(countries!);
@@ -77,8 +77,8 @@
                 foreach (var state in states!)
                 {
                     state.Country = countries?[0];
-                    state.CreatedBy = users?[random.Next(0, users.Count())];
-                    state.UpdatedBy = users?[random.Next(0, users.Count())];
+                    state.CreatedBy = users?[random.Next(0, users.Count() - 1)];
+                    state.UpdatedBy = users?[random.Next(0, users.Count() - 1)];
                 }
 
                 context.States.AddRange(states!);
@@ -92,8 +92,8 @@
                     citiesInState?.ForEach((city) =>
                     {
                         city.State = state;
-                        city.CreatedBy = users?[random.Next(0, users.Count())];
-                        city.UpdatedBy = users?[random.Next(0, users.Count())];
+                        city.CreatedBy = users?[random.Next(0, users.Count() - 1)];
+                        city.UpdatedBy = users?[random.Next(0, users.Count() - 1)];
                     });
                     cities.AddRange(citiesInState!);
                 }
@@ -104,9 +104,9 @@
 
                 foreach (var addressType in addressTypes!)
                 {
-                    addressType.SchoolBranch = schoolBranches?[random.Next(0, schoolBranches.Count())];
-                    addressType.CreatedBy = users?[random.Next(0, users.Count())];
-                    addressType.UpdatedBy = users?[random.Next(0, users.Count())];
+                    addressType.SchoolBranch = schoolBranches?[random.Next(0, schoolBranches.Count() - 1)];
+                    addressType.CreatedBy = users?[random.Next(0, users.Count() - 1)];
+                    addressType.UpdatedBy = users?[random.Next(0, users.Count() - 1)];
                 }
 
                 context.AddressTypes.AddRange(addressTypes!);
@@ -119,10 +119,10 @@
 
                     foreach (var address in addressesInCity!)
                     {
-                        address.AddressType = addressTypes?[random.Next(0, addressTypes.Count())];
+                        address.AddressType = addressTypes?[random.Next(0, addressTypes.Count() - 1)];
                         address.City = city;
-                        address.CreatedBy = users?[random.Next(0, users.Count())];
-                        address.UpdatedBy = users?[random.Next(0, users.Count())];
+                        address.CreatedBy = users?[random.Next(0, users.Count() - 1)];
+                        address.UpdatedBy = users?[random.Next(0, users.Count() - 1)];
                     }
 
                     addresses.AddRange(addressesInCity);
