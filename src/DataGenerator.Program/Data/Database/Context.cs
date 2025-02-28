@@ -10,6 +10,13 @@ namespace DataGenerator.Program.Data.Database
 
         }
 
+        public DbSet<User> Users => Set<User>();
+        public DbSet<School> Schools => Set<School>();
+        public DbSet<SchoolBranch> SchoolBranches => Set<SchoolBranch>();
+        public DbSet<Country> Countries => Set<Country>();
+        public DbSet<State> States => Set<State>();
+        public DbSet<City> Cities => Set<City>();
+        public DbSet<AddressType> AddressTypes => Set<AddressType>();
         public DbSet<Address> Addresses => Set<Address>();
     }
 }

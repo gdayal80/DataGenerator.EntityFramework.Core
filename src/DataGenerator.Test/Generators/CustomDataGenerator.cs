@@ -12,9 +12,9 @@ namespace DataGenerator.Test.Generators
 
         }
 
-        public override string GenerateMessage(Entity entity, string locale, out ChatCompletionOptions completionOptions, int noOfRows = 2, params string[] coomonColumnsToIgnore)
+        public override string GenerateMessage(Entity entity, string locale, out ChatCompletionOptions completionOptions, int noOfRows = 2, string inDataValue = "", params string[] coomonColumnsToIgnore)
         {
-            return base.GenerateMessage(entity, locale, out completionOptions, noOfRows, coomonColumnsToIgnore);
+            return base.GenerateMessage(entity, locale, out completionOptions, noOfRows, inDataValue, coomonColumnsToIgnore);
         }
 
         public override async Task<string> GenerateMockData(string message, ChatCompletionOptions completionOptions)

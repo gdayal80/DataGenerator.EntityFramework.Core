@@ -10,7 +10,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
     using System.Text.Json;
     using DataGenerator.EntityFrameworkCore.Mock.Data.Generators;
     using OpenAI.Chat;
-
+    
     public class EntityFrameworkDataGenerator<T> where T : DbContext
     {
         private T _context;
@@ -19,25 +19,27 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
         private ITraceWriter _trace;
         private IEnumerable<IEntityType> _entityTypes;
         private List<Entity> _generatedEntities;
+        private Random _random;
 
-        public EntityFrameworkDataGenerator(T context, MockDataGenerator generator, List<Entity> generatedEntities, ITraceWriter trace)
+        public EntityFrameworkDataGenerator(T context, MockDataGenerator generator, ITraceWriter trace)
         {
             _context = context;
             _analyser = new EntityFrameworkAnalyser<T>(trace);
             _generator = generator;
             _trace = trace;
             _entityTypes = _analyser.GetEntityTypesFromModel(context);
-            _generatedEntities = generatedEntities;
+            _generatedEntities = new List<Entity>();
+            _random = new Random();
         }
 
-        public async Task GenerateAndInsertData<K>(string locale, int noOfRows = 2, int openAiBatchSize = 5, int retryCount = 3, params string[] coomonColumnsToIgnore) where K : class
+        public async Task GenerateAndInsertDataWithRandomForeignKeys<K>(string locale, int noOfRows = 2, int openAiBatchSize = 5, string inDataValue = "", int retryCount = 3, params string[] coomonColumnsToIgnore) where K : class
         {
             int batchArrSize = noOfRows / openAiBatchSize;
             int remainder = noOfRows % openAiBatchSize;
             List<int> batchArr = new List<int>(remainder > 0 ? batchArrSize + 1 : batchArrSize);
             var entity = _analyser.AnalyseEntity<K>(_entityTypes);
             ChatCompletionOptions? completionOptions;
-
+            
             for (int i = 0; i < batchArrSize; i++)
             {
                 batchArr.Add(openAiBatchSize);
@@ -50,7 +52,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
 
             for (int i = 0; i < batchArr.Count(); i++)
             {
-                var message = _generator.GenerateMessage(entity!, locale, out completionOptions, batchArr[i], coomonColumnsToIgnore);
+                var message = _generator.GenerateMessage(entity!, locale, out completionOptions, batchArr[i], inDataValue, coomonColumnsToIgnore);
                 int count = 1;
 
                 while (retryCount > 0)
@@ -61,9 +63,9 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
                     {
                         try
                         {
-                            var deserializedMockData = JsonSerializer.Deserialize<MockData<K>>(data)!;
+                            var deserializedMockData = JsonSerializer.Deserialize<MockData<K>>(data)?.Data;
 
-                            await InsertMockDataAsync(entity, deserializedMockData.Data!);
+                            UpdateDataValuesAndInsertData(entity, deserializedMockData!);
 
                             break;
                         }
@@ -83,9 +85,82 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
             }
         }
 
-        private async Task InsertMockDataAsync<K>(Entity entity, IEnumerable<K> deserializedMockData) where K : class
+        public async Task<List<K>?> GenerateData<K>(string locale, int noOfRows = 2, int openAiBatchSize = 5, string inDataValue = "", int retryCount = 3, params string[] coomonColumnsToIgnore) where K : class
         {
-            Random random = new Random();
+            int batchArrSize = noOfRows / openAiBatchSize;
+            int remainder = noOfRows % openAiBatchSize;
+            List<int> batchArr = new List<int>(remainder > 0 ? batchArrSize + 1 : batchArrSize);
+            var entity = _analyser.AnalyseEntity<K>(_entityTypes);
+            ChatCompletionOptions? completionOptions;
+            List<K>? deserializedMockData = null;
+
+            for (int i = 0; i < batchArrSize; i++)
+            {
+                batchArr.Add(openAiBatchSize);
+            }
+
+            if (remainder > 0)
+            {
+                batchArr.Add(remainder);
+            }
+
+            for (int i = 0; i < batchArr.Count(); i++)
+            {
+                var message = _generator.GenerateMessage(entity!, locale, out completionOptions, batchArr[i], inDataValue, coomonColumnsToIgnore);
+                int count = 1;
+
+                while (retryCount > 0)
+                {
+                    var data = await _generator.GenerateMockData(message, completionOptions);
+
+                    if (!string.IsNullOrEmpty(data))
+                    {
+                        try
+                        {
+                            deserializedMockData = JsonSerializer.Deserialize<MockData<K>>(data)?.Data;
+
+                            UpdateDataValues(entity, deserializedMockData!);
+
+                            break;
+                        }
+                        catch (JsonException ex)
+                        {
+                            _trace.Log($"last operation failed with error {ex.Message}. retry count {count} for last operation again.");
+
+                            count++;
+                            retryCount--;
+                        }
+                        catch
+                        {
+                            throw;
+                        }
+                    }
+                }
+            }
+
+            return deserializedMockData;
+        }
+
+        private void UpdateDataValues<K>(Entity entity, List<K> deserializedMockData) where K : class
+        {
+            GenericRepository<T, K> genericRepository = new GenericRepository<T, K>(_context);
+
+            foreach (K data in deserializedMockData)
+            {
+                Type dataType = data.GetType();
+                var dateTimeProperties = entity?.Properties?.Where(p => p.ClrTypeName == typeof(DateTime).Name).ToList();
+                
+                dateTimeProperties?.ForEach((property) =>
+                {
+                    var dateTimeProperty = dataType.GetProperty(property.Name!);
+
+                    dateTimeProperty?.SetValue(data, DateTime.Now);
+                });
+            }
+        }
+
+        private void UpdateDataValuesAndInsertData<K>(Entity entity, IEnumerable<K> deserializedMockData) where K : class
+        {
             GenericRepository<T, K> genericRepository = new GenericRepository<T, K>(_context);
 
             foreach (K data in deserializedMockData)
@@ -122,7 +197,7 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
 
                         if (count > 0)
                         {
-                            int index = random.Next(0, count - 1);
+                            int index = _random.Next(0, count - 1);
                             var principalData = mockData?[index];
                             var principalKeyProperty = (PropertyInfo?)principalData?.GetType().GetProperty(primaryProperty!.Name);
                             var value = principalKeyProperty?.GetValue(principalData, null);
@@ -137,19 +212,6 @@ namespace DataGenerator.EntityFrameworkCore.Data.Generators
                         }
                     }
                 });
-
-                try
-                {
-                    genericRepository.Insert(data);
-
-                    int noOfRows = await _context.SaveChangesAsync();
-
-                    _trace.Log($"Inserted {noOfRows} row in table {entity?.DisplayName}");
-                }
-                catch
-                {
-                    throw;
-                }
             }
 
 

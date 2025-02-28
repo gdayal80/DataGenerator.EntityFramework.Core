@@ -17,11 +17,11 @@ namespace DataGenerator.EntityFrameworkCore.Mock.Data.Generators
             _openAiChatClient = new ChatClient(openAiModelName, openAiApiKey);
         }
 
-        public virtual string GenerateMessage(Entity entity, string locale, out ChatCompletionOptions completionOptions, int noOfRows = 2, params string[] coomonColumnsToIgnore)
+        public virtual string GenerateMessage(Entity entity, string locale, out ChatCompletionOptions completionOptions, int noOfRows = 2, string inDataValue = "", params string[] coomonColumnsToIgnore)
         {
             var properties = entity?.Properties!;
             string? displayName = entity?.DisplayName;
-            string message = $"for locale {locale} create dummy data for table {displayName} with {noOfRows} rows";
+            string message = string.IsNullOrEmpty(inDataValue) ? $"for locale {locale} create dummy data for table {displayName} with {noOfRows} rows" : $"for locale {locale} create dummy data for table {displayName} in {inDataValue} with {noOfRows} rows";
             JsonSchema jsonSchema = new JsonSchema { Type = "object" };
             JsonSchema jsonSchemaData = new JsonSchema { Type = "object" };
             JsonSchema jsonSchemaItems = new JsonSchema { Type = "array" };
