@@ -35,7 +35,6 @@
             try
             {
                 MockDataGenerator mockDataGenerator = new MockDataGenerator(trace, openAiApiKey);
-                var generatedEntities = new List<Entity>();
                 EntityFrameworkDataGenerator<Context> entityFrameworkDataGenerator = new EntityFrameworkDataGenerator<Context>(context, mockDataGenerator, trace);
 
                 var users = await entityFrameworkDataGenerator.GenerateData<User>(locale, 5, 5);
