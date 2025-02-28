@@ -67,7 +67,6 @@ namespace DataGenerator.EntityFrameworkCore.Mock.Data.Generators
             };
 
             _trace.Log($"Sending [MESSAGE]: {message}");
-            _trace.Log($"Sending [jsonSchema]: {jsonSchemaStr}");
 
             return message;
         }
@@ -75,9 +74,10 @@ namespace DataGenerator.EntityFrameworkCore.Mock.Data.Generators
         public virtual async Task<string> GenerateMockData(string message, ChatCompletionOptions completionOptions)
         {
             ChatCompletion completion = await _openAiChatClient.CompleteChatAsync([message], completionOptions);
+            ChatTokenUsage usage = completion.Usage;
             string completionText = completion.Content[0].Text;
 
-            _trace.Log($"[ASSISTANT]: {completionText}");
+            _trace.Log($"[USAGE] (InputTokensCount + OuputTokensCount = TotalTokensCount): {usage.InputTokenCount} + {usage.OutputTokenCount} = {usage.TotalTokenCount}");
 
             return completionText;
         }
