@@ -1,7 +1,7 @@
 src/.vs
-src/OpenAI.DataGenerator/obj
-src/OpenAI.DataGenerator/bin
-src/OpenAI.Program/obj
-src/OpenAI.Program/bin
-src/OpenAI.Test/obj
-src/OpenAI.Test/bin
+src/DataGenerator.OpenAI/obj
+src/DataGenerator.OpenAI/bin
+src/DataGenerator.OpenAI.Program/obj
+src/DataGenerator.OpenAI.Program/bin
+src/DataGenerator.OpenAI.Test/obj
+src/DataGenerator.OpenAI.Test/bin
