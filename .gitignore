@@ -1,7 +1,7 @@
 src/.vs
-src/DataGenerator.EntityFramework.Core/obj
-src/DataGenerator.EntityFramework.Core/bin
-src/DataGenerator.Program/obj
-src/DataGenerator.Program/bin
-src/DataGenerator.Test/obj
-src/DataGenerator.Test/bin
+src/OpenAI.DataGenerator/obj
+src/OpenAI.DataGenerator/bin
+src/OpenAI.Program/obj
+src/OpenAI.Program/bin
+src/OpenAI.Test/obj
+src/OpenAI.Test/bin

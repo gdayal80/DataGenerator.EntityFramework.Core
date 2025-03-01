@@ -1,8 +1,8 @@
 
-![Nuget](https://img.shields.io/nuget/v/DataGenerator.EntityFramework.Core)
+![Nuget](https://img.shields.io/nuget/v/OpenAI.DataGenerator)
 
 # Introduction
-DataGenerator.EntityFramework.Core is a package to generate Mock Data using OpenAI & EntityFramework Core on Windows / Linux / MacOS. The package is compatible only with primitive DataTypes, Complex DataTypes are not supported.
+OpenAI.DataGenerator is a package to generate Mock Data using OpenAI & EntityFramework Core on Windows / Linux / MacOS. The package is compatible only with primitive DataTypes, Complex DataTypes are not supported.
 
 # Parameter: `openAiBatchSize` 
 
@@ -16,14 +16,14 @@ DataGenerator.EntityFramework.Core is a package to generate Mock Data using Open
 
 From nuget packages
 
-![Nuget](https://img.shields.io/nuget/v/DataGenerator.EntityFramework.Core)
+![Nuget](https://img.shields.io/nuget/v/OpenAI.DataGenerator)
 
-`PM> Install-Package DataGenerator.EntityFramework.Core`
+`PM> Install-Package OpenAI.DataGenerator`
 
 ## Usage 
 
 ```C#
-using DataGenerator.EntityFrameworkCore.Interfaces;
+using OpenAI.DataGenerator.Interfaces;
     
 public class ConsoleTraceWriter : ITraceWriter
 {
@@ -43,8 +43,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Collections.Generic;
-using DataGenerator.EntityFrameworkCore.Mock.Data.Generators;
-using DataGenerator.EntityFrameworkCore.Data.Generators;
+using OpenAI.DataGenerator.Mock.Data.Generators;
+using OpenAI.DataGenerator.Data.Generators;
 using System.Globalization;
 
 Random random = new Random();
