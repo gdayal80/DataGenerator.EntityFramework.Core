@@ -4,6 +4,13 @@
 # Introduction
 DataGenerator.OpenAI is a package to generate Mock Data using OpenAI & EntityFramework Core on Windows / Linux / MacOS. The package is compatible only with primitive DataTypes, Complex DataTypes are not supported.
 
+# Limitations
+Due to Current limitation of OpenAI supported data types for structured data, this package supports only following data types
+
+`Boolean` `Number` `String` `Int32` `Int64` `DateTime`
+
+though `DateTine` is not supported by OpenAI, this package assigns current dateTime as default value to DateTime data type
+
 # Parameter: `openAiBatchSize` 
 
 `openAiBatchSize` should be equal to `noOfRows` in case you want to ensure unique data values.
